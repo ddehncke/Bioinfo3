@@ -25,6 +25,7 @@ def main():
     parser.add_argument("-score_GU", type=int, dest='score_GU', default=0)
 
     args = parser.parse_args()
+    # mein temp kommentar
 
     score_AU = args.score_AU
     score_CG = args.score_CG
