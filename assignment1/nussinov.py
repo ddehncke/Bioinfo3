@@ -53,7 +53,6 @@ def main():
     # create 2 dimensional dictionatries for dp and traceback
     for i in rangeInclusive(1,len(sequence)):
         dp_dic[i] = {}
-        traceback_dic[i] = {}
 
     # fill with 0
     for i in rangeInclusive(2,len(sequence)):
@@ -71,10 +70,10 @@ def main():
                  ('A', 'G'): 0, ('G', 'A'): 0,
                      'minimumLoopLength':min_loop_length}
 
-    fillMatrices(dp_dic, dic_BaseScore, traceback_dic, dic_sequence)
+    fillMatrices(dp_dic, dic_BaseScore, dic_sequence)
 
 # filling the matrix and then computing the traceback
-def fillMatrices(dp_dic, dic_BaseScore, traceback_dic, dic_sequence):
+def fillMatrices(dp_dic, dic_BaseScore, dic_sequence):
 
     def getPairScore(i, j):
         return dic_BaseScore[(dic_sequence[i], dic_sequence[j])]
@@ -86,27 +85,24 @@ def fillMatrices(dp_dic, dic_BaseScore, traceback_dic, dic_sequence):
 
             case1 = dp_dic[i + 1][j]
             case2 = dp_dic[i][j - 1]
-            case3 = dp_dic[i + 1][j - 1] + getPairScore(i, j) if abs(i - j) >= dic_BaseScore['minimumLoopLength'] else 0
+            case3 = dp_dic[i + 1][j - 1] + getPairScore(i, j) if abs(i - j) > dic_BaseScore['minimumLoopLength'] else 0
 
-            case4 = -1
-            temp_trace = ()
-            # TODO hier noch minimum loop length implementieren
+            case4 = 0
             for k in rangeExclusive(i,j):
                 if dp_dic[i][k] + dp_dic[k+1][j] > case4:
-                    temp_trace = ((i,k),(k+1,j))
+                    case4 = dp_dic[i][k] + dp_dic[k+1][j]
 
-            if case1 > case2 and case1 > case3 and case1 > case4:
-                dp_dic[i][j] = case1
-                traceback_dic[i][j] = ((i + 1,j))
-            elif case2 > case3 and case2 > case4:
-                dp_dic[i][j] = case2
-                traceback_dic[i][j] = ((i, j - 1))
-            elif case4 > case3: # switched here with case 4 to not have case 4 as default state at the beginning. but acctually makes no difference for traceback.
-                dp_dic[i][j] = case4
-                traceback_dic[i][j] = temp_trace
-            else:
-                dp_dic[i][j] = case3
-                traceback_dic[i][j] = ((i + 1,j - 1))
+            # if case1 > case2 and case1 > case3 and case1 > case4:
+            #     dp_dic[i][j] = case1
+            # elif case2 > case3 and case2 > case4:
+            #     dp_dic[i][j] = case2
+            # elif case3 > case4:
+            #     dp_dic[i][j] = case3
+            # else:
+            #     dp_dic[i][j] = case4
+
+            dp_dic[i][j] = max(case1, case2, case3, case4)
+
 
     matrix_BasePairs = [-1 for x in range(31)]
 
@@ -140,6 +136,16 @@ def printMatrix(dp_dic):
 
 
 def printSequence(dic_sequence, matrix_BasePairs):
+    print(''.join([dic_sequence[i] for i in rangeInclusive(1,len(dic_sequence))]))
+    for i in range(1, len(matrix_BasePairs)):
+        if matrix_BasePairs[i] == 0:
+            print('.', end='')
+        elif i < matrix_BasePairs[i]:
+            print('(', end='')
+        else:
+            print(')', end='')
+    print()
+
     for i in range(1, len(matrix_BasePairs)):
         print(i , dic_sequence[i], matrix_BasePairs[i])
 
