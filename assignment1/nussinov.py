@@ -19,7 +19,7 @@ def main():
     parser = argparse.ArgumentParser(description='imput fasta file')
     parser.add_argument('-i', dest="filename", metavar="FILE", help='input file', required=True,
                         type=lambda x: is_valid_file(parser, x))
-    parser.add_argument("--min-loop-length", type=int, dest='min_loop_length', default=1)
+    parser.add_argument("--min-loop-length", type=int, dest='min_loop_length', default=5)
     parser.add_argument("-score_AU", type=int, dest='score_AU', default=10)
     parser.add_argument("-score_CG", type=int, dest='score_CG', default=1)
     parser.add_argument("-score_GU", type=int, dest='score_GU', default=0)
@@ -61,21 +61,23 @@ def main():
     for i in rangeInclusive(1,len(sequence)):
         dp_dic[i][i] = 0
 
-    dic_score = {('A','U'):score_AU, ('U','A'):score_AU,
+    dic_BaseScore = {('A','U'):score_AU, ('U','A'):score_AU,
                  ('C','G'):score_CG, ('G','C'):score_CG,
-                 ('G','U'):score_AU, ('U','G'):score_AU,
+                 ('G','U'):score_GU, ('U','G'):score_GU,
                  ('U', 'U'): 0, ('G', 'G'): 0,
                  ('A', 'A'): 0, ('C', 'C'): 0,
                  ('U', 'C'): 0, ('C', 'U'): 0,
                  ('A', 'C'): 0, ('C', 'A'): 0,
-                 ('A', 'G'): 0, ('G', 'A'): 0}
+                 ('A', 'G'): 0, ('G', 'A'): 0,
+                     'minimumLoopLength':min_loop_length}
 
-    fillMatrices(dp_dic, dic_score, traceback_dic, dic_sequence)
+    fillMatrices(dp_dic, dic_BaseScore, traceback_dic, dic_sequence)
 
-def fillMatrices(dp_dic, dic_score, traceback_dic, dic_sequence):
+# filling the matrix and then computing the traceback
+def fillMatrices(dp_dic, dic_BaseScore, traceback_dic, dic_sequence):
 
     def getPairScore(i, j):
-        return dic_score[(dic_sequence[i], dic_sequence[j])]
+        return dic_BaseScore[(dic_sequence[i], dic_sequence[j])]
 
     # initialization recursion
     for I in rangeInclusive(2, len(dic_sequence)):
@@ -84,8 +86,7 @@ def fillMatrices(dp_dic, dic_score, traceback_dic, dic_sequence):
 
             case1 = dp_dic[i + 1][j]
             case2 = dp_dic[i][j - 1]
-
-            case3 = dp_dic[i + 1][j - 1] + getPairScore(i, j)
+            case3 = dp_dic[i + 1][j - 1] + getPairScore(i, j) if abs(i - j) >= dic_BaseScore['minimumLoopLength'] else 0
 
             case4 = -1
             temp_trace = ()
@@ -100,23 +101,26 @@ def fillMatrices(dp_dic, dic_score, traceback_dic, dic_sequence):
             elif case2 > case3 and case2 > case4:
                 dp_dic[i][j] = case2
                 traceback_dic[i][j] = ((i, j - 1))
-            elif case4 > case3: # switched here with case 4 to not confuse stuff
+            elif case4 > case3: # switched here with case 4 to not have case 4 as default state at the beginning. but acctually makes no difference for traceback.
                 dp_dic[i][j] = case4
                 traceback_dic[i][j] = temp_trace
             else:
                 dp_dic[i][j] = case3
                 traceback_dic[i][j] = ((i + 1,j - 1))
 
-
+    matrix_BasePairs = [-1 for x in range(31)]
 
     def traceback(i,j):
-        if i < j:
+        if i <= j:
             if dp_dic[i][j] == dp_dic[i+1][j]:
+                matrix_BasePairs[i] = 0
                 traceback(i + 1, j)
             elif dp_dic[i][j] == dp_dic[i][j-1]:
+                matrix_BasePairs[j] = 0
                 traceback(i, j - 1)
             elif dp_dic[i][j] == dp_dic[i + 1][j - 1] + getPairScore(i, j):
-                print(dic_sequence[i],dic_sequence[j])
+                matrix_BasePairs[j] = i
+                matrix_BasePairs[i] = j
                 traceback(i + 1, j - 1)
             else:
                 for k in rangeInclusive(i+1,j-1):
@@ -126,6 +130,7 @@ def fillMatrices(dp_dic, dic_score, traceback_dic, dic_sequence):
                         break
 
     traceback(1, 30)
+    printSequence(dic_sequence, matrix_BasePairs)
 
 
 
@@ -134,6 +139,9 @@ def printMatrix(dp_dic):
         print(v)
 
 
+def printSequence(dic_sequence, matrix_BasePairs):
+    for i in range(1, len(matrix_BasePairs)):
+        print(i , dic_sequence[i], matrix_BasePairs[i])
 
 
 main()
