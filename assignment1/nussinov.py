@@ -14,7 +14,7 @@ def is_valid_file(parser, arg):
 rangeInclusive = lambda start, end: range(start, end + 1)
 rangeExclusive = lambda start, end: range(start + 1, end)
 
-def main():
+def computeNussinov():
 
     parser = argparse.ArgumentParser(description='imput fasta file')
     parser.add_argument('-i', dest="filename", metavar="FILE", help='input file', required=True,
@@ -25,7 +25,6 @@ def main():
     parser.add_argument("-score_GU", type=int, dest='score_GU', default=0)
 
     args = parser.parse_args()
-    # mein temp kommentar
 
     score_AU = args.score_AU
     score_CG = args.score_CG
@@ -35,7 +34,7 @@ def main():
 
     sequence = ''
 
-    with open('input_files/supplement01/test.fasta', 'r') as file_handle:
+    with open(input_file, 'r') as file_handle:
         for line in file_handle:
             line = line.strip()
             if line[0] == '>':
@@ -104,8 +103,9 @@ def fillMatrices(dp_dic, dic_BaseScore, dic_sequence):
             dp_dic[i][j] = max(case1, case2, case3, case4)
 
 
-    matrix_BasePairs = [-1 for x in range(31)]
+    matrix_BasePairs = [-1 for x in range(len(dic_sequence)+1)]
 
+    # recurrsivly go through the matrix and add the values to a traceback array
     def traceback(i,j):
         if i <= j:
             if dp_dic[i][j] == dp_dic[i+1][j]:
@@ -125,8 +125,10 @@ def fillMatrices(dp_dic, dic_BaseScore, dic_sequence):
                         traceback(k + 1,j)
                         break
 
-    traceback(1, 30)
+    traceback(1, len(dic_sequence))
     printSequence(dic_sequence, matrix_BasePairs)
+
+    #return dic_sequence, matrix_BasePairs
 
 
 
@@ -149,5 +151,8 @@ def printSequence(dic_sequence, matrix_BasePairs):
     for i in range(1, len(matrix_BasePairs)):
         print(i , dic_sequence[i], matrix_BasePairs[i])
 
+
+def main():
+    computeNussinov()
 
 main()
