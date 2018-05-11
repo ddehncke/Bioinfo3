@@ -34,9 +34,9 @@ def main():
     for filename in all_paths:
         # print(i)
         i += 1
-        # parser = PDBParser()
+        parser = PDBParser()
         path_to_current_file = os.path.join(args.folder, filename)
-        # structure = parser.get_structure('temp', path_to_current_file)
+        structure = parser.get_structure('temp', path_to_current_file)
 
         # print(filename)
         nr_Conformations = 0
@@ -103,8 +103,36 @@ def main():
 
         # all different secondary structures in file have been counted, therefore
         # the cain hast to be counted multiple times
-        nr_all_chains += len(aa_ary) * nr_Conformations
+        nr_all_chains += len(aa_ary)
 
+    # print_a_and_b(alpha_helix_count, three_ten_helix_count, sheet_count, nr_all_chains, dic_helix, dic_sheet)
+
+    # for model in structure:
+    #     for chain in model:
+    #         residues = chain.get_residues()
+    #         # for i in range(0,len(residues)):
+    #         #     print(residues[i])
+    #         for residue in chain:
+    #             id = residue.get_full_id()
+    #             print(id[3][1])
+    #             # for atom in residue:
+    #                 # print(atom.get_parent())
+
+    #
+    # for model in structure:
+    #     for chain in model:
+    #         residues = chain.get_residues()
+    #         # for i in range(0,len(residues)):
+    #         #     print(residues[i])
+    #         for residue in chain:
+    #             id = residue.get_full_id()
+    #             print(id[3][1])
+    #             # for atom in residue:
+    #                 # print(atom.get_parent())
+
+
+
+def print_a_and_b(alpha_helix_count, three_ten_helix_count, sheet_count, nr_all_chains, dic_helix, dic_sheet):
     print('The percentages of the secondary structures measures by the sequences.')
     print('alphaHelixContent:',alpha_helix_count/nr_all_chains)
     print('three_ten_helix_count:', three_ten_helix_count / nr_all_chains)
@@ -120,6 +148,7 @@ def main():
     dic_sheet_sorted = OrderedDict(sorted(dic_sheet.items(), key=itemgetter(1)))
     for i in dic_sheet_sorted:
         print(i, dic_sheet_sorted[i])
+
 
 
 main()
