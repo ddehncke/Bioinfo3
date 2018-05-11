@@ -1,9 +1,14 @@
+#!/usr/bin/env python
+
 import argparse
 import sys
 import os
 from collections import OrderedDict
 from operator import itemgetter
 from Bio.PDB import *
+import matplotlib.pyplot as plt
+import numpy as np
+import plotly.plotly as py
 
 dic_helix = {'CYS': 0, 'ASP': 0, 'SER': 0, 'GLN': 0, 'LYS': 0,
      'ILE': 0, 'PRO': 0, 'THR': 0, 'PHE': 0, 'ASN': 0,
@@ -30,13 +35,31 @@ def main():
     sheet_count = 0
     nr_all_chains = 0
     i = 0
+    dist_O_N = []
 
     for filename in all_paths:
         # print(i)
         i += 1
         parser = PDBParser()
-        path_to_current_file = os.path.join(args.folder, filename)
         structure = parser.get_structure('temp', path_to_current_file)
+        path_to_current_file = os.path.join(args.folder, filename)
+
+
+        # compute the distance between the fourth N and the first O using and counter
+        wait_four_residues = 1
+        stack_O = []
+        for model in structure:
+            for chain in model:
+                for residue in chain:
+                    # need to skip residues that are incorrect
+                    if 'O' not in residue or 'N' not in residue:
+                        continue
+                    stack_O.append(residue['O'].get_vector())
+
+                    if wait_four_residues >= 4:
+                        dist_O_N.append(np.linalg.norm(stack_O.pop() - residue['N'].get_vector()))
+
+                    wait_four_residues += 1
 
         # print(filename)
         nr_Conformations = 0
@@ -62,7 +85,6 @@ def main():
                     current_Conformation = line[19]
                     nr_Conformations += 1
 
-                # print(line[72:76])
                 # alpha helix
                 if line[39:40].strip() == '1':
                     alpha_helix_count += int(line[72:76].strip())
@@ -107,30 +129,17 @@ def main():
 
     # print_a_and_b(alpha_helix_count, three_ten_helix_count, sheet_count, nr_all_chains, dic_helix, dic_sheet)
 
-    # for model in structure:
-    #     for chain in model:
-    #         residues = chain.get_residues()
-    #         # for i in range(0,len(residues)):
-    #         #     print(residues[i])
-    #         for residue in chain:
-    #             id = residue.get_full_id()
-    #             print(id[3][1])
-    #             # for atom in residue:
-    #                 # print(atom.get_parent())
-
-    #
-    # for model in structure:
-    #     for chain in model:
-    #         residues = chain.get_residues()
-    #         # for i in range(0,len(residues)):
-    #         #     print(residues[i])
-    #         for residue in chain:
-    #             id = residue.get_full_id()
-    #             print(id[3][1])
-    #             # for atom in residue:
-    #                 # print(atom.get_parent())
 
 
+    histogram(dist_O_N, 'distance O-N')
+
+def getStructureDistancesO_N(parser, path):
+
+
+def histogram(distances, name):
+    plt.hist(distances)
+    plt.title(name)
+    plt.show()
 
 def print_a_and_b(alpha_helix_count, three_ten_helix_count, sheet_count, nr_all_chains, dic_helix, dic_sheet):
     print('The percentages of the secondary structures measures by the sequences.')
