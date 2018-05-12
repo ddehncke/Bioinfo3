@@ -41,12 +41,13 @@ def main():
     dist_O_N_Helix = []
 
     for filename in all_paths:
+        print(filename)
         path_to_current_file = os.path.join(args.folder, filename)
         parser = PDBParser()
         structure = parser.get_structure('temp', path_to_current_file)
 
         # add the distances from the current file
-        # dist_O_N.extend(getStructureDistancesO_N(path_to_current_file))
+        dist_O_N.extend(getStructureDistancesO_N(path_to_current_file))
 
         nr_Conformations = 0
         current_Conformation = ''
@@ -86,7 +87,8 @@ def main():
 
                     # computes the distance for the given Helix
                     if end < len(aa_ary):
-                        dist_O_N_Helix.extend(getHelixDistances(start, end, structure))
+                        id_chain = line[19:20]
+                        # dist_O_N_Helix.extend(getHelixDistances(id_chain, start, end, structure))
 
 
                     for aa in range(start, end):
@@ -120,35 +122,45 @@ def main():
 
     # print_a_and_b(alpha_helix_count, three_ten_helix_count, sheet_count, nr_all_chains, dic_helix, dic_sheet)
 
-    histogram(dist_O_N_Helix, 'distance O-N in helices')
+    # histogram(dist_O_N_Helix, 'distance O-N in helices')
+    histogram(dist_O_N, 'distance O-N in whole structure')
 
-def getHelixDistances(start, end, structure):
-    temp_dist = []
+def getHelixDistances(id_chain, start, end, structure):
+    list_dist = []
 
     # compute the distance between the fourth N and the first O using and counter
     wait_four_residues = 1
-    stack_O = []
+    stack_o = []
     for model in structure:
         for chain in model:
             for residue in chain:
 
-                # need to skip residues that are incorrect
-                if 'O' not in residue or 'N' not in residue:
-                    continue
-
                 # checks if the current residue is bigger than the start of the helix and smaller
                 # than the end of the helix. Then the distance to the fourth atom is computed.
-                if start <= int(residue.get_full_id()[3][1]) < end:
-                    stack_O.append(residue['O'].get_vector())
+
+                if start <= int(residue.get_full_id()[3][1]) < end and id_chain == chain.id:
+
+                    # need to skip residues that are incomplete. Also need to skip conformations that got the same
+                    # chain identifier.
+                    if 'O' not in residue or 'N' not in residue:
+                        wait_four_residues = 1
+                        stack_o = []
+                        continue
+
+                    stack_o.append(residue)
+
+                    if int(residue.get_full_id()[3][1]) < int(stack_o[0].get_full_id()[3][1]):
+                        wait_four_residues = 1
+                        stack_o = []
+                        continue
 
                     if wait_four_residues >= 4:
-                        temp_dist.append(np.linalg.norm(stack_O.pop() - residue['N'].get_vector()))
-
-                    print(residue['N'].get_vector())
+                        temp = np.linalg.norm(stack_o.pop(0)['O'].get_vector() - residue['N'].get_vector())
+                        list_dist.append(temp)
 
                     wait_four_residues += 1
 
-    return temp_dist
+    return list_dist
 
 
 def getStructureDistancesO_N(path):
@@ -157,17 +169,26 @@ def getStructureDistancesO_N(path):
     structure = parser.get_structure('temp', path)
     # compute the distance between the fourth N and the first O using and counter
     wait_four_residues = 1
-    stack_O = []
+    stack_o = []
     for model in structure:
         for chain in model:
             for residue in chain:
                 # need to skip residues that are incorrect
                 if 'O' not in residue or 'N' not in residue:
+                    wait_four_residues = 1
+                    stack_o = []
                     continue
-                stack_O.append(residue['O'].get_vector())
+
+                stack_o.append(residue)
+
+                if int(residue.get_full_id()[3][1]) < int(stack_o[0].get_full_id()[3][1]):
+                    wait_four_residues = 1
+                    stack_o = []
+                    continue
 
                 if wait_four_residues >= 4:
-                    temp_dist.append(np.linalg.norm(stack_O.pop() - residue['N'].get_vector()))
+                    # temp_dist.append(np.linalg.norm(stack_O.pop(0) - residue['N'].get_vector()))
+                    temp_dist.append(np.linalg.norm(stack_o.pop(0)['O'].get_vector() - residue['N'].get_vector()))
 
 
                 wait_four_residues += 1
@@ -176,7 +197,11 @@ def getStructureDistancesO_N(path):
 
 
 def histogram(distances, name):
-    plt.hist(distances)
+    # remove values that are to big. Dont know why, tried to fix
+    a = np.array(distances)
+    b = a[np.logical_and(a>=0, a<9.5)]
+    print(len(b)/len(a))
+    plt.hist(b)
     plt.title(name)
     plt.show()
 
