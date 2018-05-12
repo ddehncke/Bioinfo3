@@ -26,7 +26,9 @@ def main():
 
     args = parser.parse_args()
 
+
     all_paths = os.listdir(args.folder)
+
 
     # parse the pdb file
 
@@ -36,32 +38,16 @@ def main():
     nr_all_chains = 0
     i = 0
     dist_O_N = []
+    dist_O_N_Helix = []
 
     for filename in all_paths:
-        # print(i)
-        i += 1
+        path_to_current_file = os.path.join(args.folder, filename)
         parser = PDBParser()
         structure = parser.get_structure('temp', path_to_current_file)
-        path_to_current_file = os.path.join(args.folder, filename)
 
+        # add the distances from the current file
+        # dist_O_N.extend(getStructureDistancesO_N(path_to_current_file))
 
-        # compute the distance between the fourth N and the first O using and counter
-        wait_four_residues = 1
-        stack_O = []
-        for model in structure:
-            for chain in model:
-                for residue in chain:
-                    # need to skip residues that are incorrect
-                    if 'O' not in residue or 'N' not in residue:
-                        continue
-                    stack_O.append(residue['O'].get_vector())
-
-                    if wait_four_residues >= 4:
-                        dist_O_N.append(np.linalg.norm(stack_O.pop() - residue['N'].get_vector()))
-
-                    wait_four_residues += 1
-
-        # print(filename)
         nr_Conformations = 0
         current_Conformation = ''
         aa_ary = []
@@ -98,6 +84,11 @@ def main():
                     start = int(line[22:25])
                     end = int(line[34:37])
 
+                    # computes the distance for the given Helix
+                    if end < len(aa_ary):
+                        dist_O_N_Helix.extend(getHelixDistances(start, end, structure))
+
+
                     for aa in range(start, end):
                         if end < len(aa_ary):
                             if dic_helix.get(aa_ary[aa]) is not None:
@@ -129,11 +120,59 @@ def main():
 
     # print_a_and_b(alpha_helix_count, three_ten_helix_count, sheet_count, nr_all_chains, dic_helix, dic_sheet)
 
+    histogram(dist_O_N_Helix, 'distance O-N in helices')
+
+def getHelixDistances(start, end, structure):
+    temp_dist = []
+
+    # compute the distance between the fourth N and the first O using and counter
+    wait_four_residues = 1
+    stack_O = []
+    for model in structure:
+        for chain in model:
+            for residue in chain:
+
+                # need to skip residues that are incorrect
+                if 'O' not in residue or 'N' not in residue:
+                    continue
+
+                # checks if the current residue is bigger than the start of the helix and smaller
+                # than the end of the helix. Then the distance to the fourth atom is computed.
+                if start <= int(residue.get_full_id()[3][1]) < end:
+                    stack_O.append(residue['O'].get_vector())
+
+                    if wait_four_residues >= 4:
+                        temp_dist.append(np.linalg.norm(stack_O.pop() - residue['N'].get_vector()))
+
+                    print(residue['N'].get_vector())
+
+                    wait_four_residues += 1
+
+    return temp_dist
 
 
-    histogram(dist_O_N, 'distance O-N')
+def getStructureDistancesO_N(path):
+    temp_dist = []
+    parser = PDBParser()
+    structure = parser.get_structure('temp', path)
+    # compute the distance between the fourth N and the first O using and counter
+    wait_four_residues = 1
+    stack_O = []
+    for model in structure:
+        for chain in model:
+            for residue in chain:
+                # need to skip residues that are incorrect
+                if 'O' not in residue or 'N' not in residue:
+                    continue
+                stack_O.append(residue['O'].get_vector())
 
-def getStructureDistancesO_N(parser, path):
+                if wait_four_residues >= 4:
+                    temp_dist.append(np.linalg.norm(stack_O.pop() - residue['N'].get_vector()))
+
+
+                wait_four_residues += 1
+
+    return temp_dist
 
 
 def histogram(distances, name):
